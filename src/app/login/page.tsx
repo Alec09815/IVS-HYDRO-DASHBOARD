@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { Droplets } from "lucide-react";
+import Image from "next/image";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -36,9 +36,14 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         {/* Logo / Brand */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-ivs-accent/20 rounded-2xl mb-4">
-            <Droplets className="w-8 h-8 text-ivs-accent" />
-          </div>
+          <Image
+            src="/logo.png"
+            alt="IVS Group Inc."
+            width={120}
+            height={120}
+            className="mx-auto mb-4"
+            priority
+          />
           <h1 className="text-2xl font-bold text-ivs-text">
             IVS Hydrodemolition
           </h1>

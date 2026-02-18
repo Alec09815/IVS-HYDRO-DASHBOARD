@@ -16,10 +16,10 @@ import {
   ClipboardList,
   Settings,
   LogOut,
-  Droplets,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import Image from "next/image";
 import { useState } from "react";
 
 interface NavItem {
@@ -57,9 +57,13 @@ export function Sidebar() {
     >
       {/* Brand Header */}
       <div className="flex items-center gap-3 px-4 h-16 border-b border-ivs-border">
-        <div className="flex-shrink-0 w-8 h-8 bg-ivs-accent/20 rounded-lg flex items-center justify-center">
-          <Droplets size={18} className="text-ivs-accent" />
-        </div>
+        <Image
+          src="/logo.png"
+          alt="IVS Group Inc."
+          width={32}
+          height={32}
+          className="flex-shrink-0"
+        />
         {!collapsed && (
           <div className="overflow-hidden">
             <p className="text-sm font-bold text-ivs-text leading-tight">IVS Group</p>

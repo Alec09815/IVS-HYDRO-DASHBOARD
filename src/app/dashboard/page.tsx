@@ -3,6 +3,7 @@
 import { useAuth } from "@/contexts/auth-context";
 import { hasModuleAccess, type AppModule } from "@/lib/roles";
 import Link from "next/link";
+import Image from "next/image";
 import {
   FileText,
   Briefcase,
@@ -120,13 +121,21 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8">
       {/* Welcome Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-ivs-text">
-          Welcome back, {employee?.first_name ?? "User"}
-        </h1>
-        <p className="text-ivs-text-muted mt-1">
-          IVS Hydrodemolition Operations Dashboard
-        </p>
+      <div className="flex items-center gap-4">
+        <Image
+          src="/logo.png"
+          alt="IVS Group Inc."
+          width={48}
+          height={48}
+        />
+        <div>
+          <h1 className="text-2xl font-bold text-ivs-text">
+            Welcome back, {employee?.first_name ?? "User"}
+          </h1>
+          <p className="text-ivs-text-muted mt-1">
+            IVS Hydrodemolition Operations Dashboard
+          </p>
+        </div>
       </div>
 
       {/* Quick Stats */}
