@@ -1,26 +1,54 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
+/* IVS Hydrodemolition Brand Theme */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-ivs-bg: #1A1F2E;
+  --color-ivs-bg-light: #232838;
+  --color-ivs-bg-card: #2A2F3E;
+  --color-ivs-sidebar: #151929;
+  --color-ivs-accent: #00B4D8;
+  --color-ivs-accent-hover: #0096B7;
+  --color-ivs-accent-light: #00B4D820;
+  --color-ivs-text: #E8EAED;
+  --color-ivs-text-muted: #9CA3AF;
+  --color-ivs-border: #374151;
+  --color-ivs-success: #10B981;
+  --color-ivs-warning: #F59E0B;
+  --color-ivs-danger: #EF4444;
+  --color-ivs-info: #3B82F6;
+
+  /* Field/tablet light theme colors */
+  --color-field-bg: #F3F4F6;
+  --color-field-bg-card: #FFFFFF;
+  --color-field-text: #1F2937;
+  --color-field-text-muted: #6B7280;
+  --color-field-border: #D1D5DB;
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+body {
+  background: var(--color-ivs-bg);
+  color: var(--color-ivs-text);
+  font-family: Arial, Helvetica, sans-serif;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Scrollbar styling for dark theme */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-ivs-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-ivs-border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-ivs-accent);
 }
