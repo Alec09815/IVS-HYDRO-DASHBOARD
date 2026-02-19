@@ -62,7 +62,7 @@ export default function ProductionPage() {
           </p>
         </div>
         <Link
-          href="/dashboard/field/production"
+          href="/dashboard/production/new"
           className="flex items-center gap-2 px-4 py-2.5 bg-ivs-accent hover:bg-ivs-accent-hover text-white text-sm font-medium rounded-lg transition-colors"
         >
           <Plus size={16} /> New Entry

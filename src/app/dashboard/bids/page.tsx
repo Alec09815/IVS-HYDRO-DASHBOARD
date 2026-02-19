@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 import { BID_KANBAN_COLUMNS, type Bid, type KanbanColumnId } from "@/lib/types";
 import { Upload, Plus, RefreshCw, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 const COLUMN_ORDER: KanbanColumnId[] = ["draft", "submitted", "won", "lost", "cancelled"];
 
@@ -172,23 +173,13 @@ export default function BidsPage() {
             <Upload size={16} />
             Import
           </button>
-          <button
-            onClick={async () => {
-              const count = Object.values(bids).flat().length + 1;
-              const bidNum = `BID-${new Date().getFullYear()}-${String(count).padStart(3, "0")}`;
-              const { error } = await supabase.from("bids").insert({
-                bid_number: bidNum,
-                project_name: "New Bid",
-                client_name: "TBD",
-                status: "draft",
-              });
-              if (!error) fetchBids();
-            }}
+          <Link
+            href="/dashboard/bids/new"
             className="flex items-center gap-2 px-4 py-2 bg-ivs-accent hover:bg-ivs-accent-hover text-white text-sm font-medium rounded-lg transition-colors"
           >
             <Plus size={16} />
             New Bid
-          </button>
+          </Link>
         </div>
       </div>
 

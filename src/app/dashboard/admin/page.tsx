@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/contexts/toast-context";
 import type { Employee } from "@/lib/types";
 import { ROLES, type UserRole } from "@/lib/roles";
-import { Users, Shield, Database, Plus, X, Pencil, Save, Search } from "lucide-react";
+import { Users, Shield, Database, Plus, X, Pencil, Save, Search, AlertTriangle } from "lucide-react";
 
 export default function AdminPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -12,6 +13,8 @@ export default function AdminPage() {
   const [search, setSearch] = useState("");
   const [showInvite, setShowInvite] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [deactivateTarget, setDeactivateTarget] = useState<Employee | null>(null);
+  const { success, error: showError } = useToast();
   const supabase = createClient();
 
   const fetchData = useCallback(async () => {
@@ -118,7 +121,7 @@ export default function AdminPage() {
               {filtered.map((emp) => {
                 const roleConfig = ROLES[emp.role as UserRole];
                 return editingId === emp.id ? (
-                  <EditRow key={emp.id} employee={emp} roles={ROLES} onCancel={() => setEditingId(null)} onSave={() => { setEditingId(null); fetchData(); }} />
+                  <EditRow key={emp.id} employee={emp} roles={ROLES} onCancel={() => setEditingId(null)} onSave={(msg) => { setEditingId(null); fetchData(); success(msg); }} onDeactivate={(e) => setDeactivateTarget(e)} />
                 ) : (
                   <tr key={emp.id} className="border-b border-ivs-border/50 hover:bg-ivs-bg-light/50 transition-colors">
                     <td className="px-4 py-3">
@@ -154,7 +157,24 @@ export default function AdminPage() {
 
       {/* Invite Modal */}
       {showInvite && (
-        <InviteModal onClose={() => setShowInvite(false)} onCreated={() => { setShowInvite(false); fetchData(); }} />
+        <InviteModal onClose={() => setShowInvite(false)} onCreated={(name) => { setShowInvite(false); fetchData(); success(`${name} added successfully`); }} />
+      )}
+
+      {/* Deactivate Confirmation Modal */}
+      {deactivateTarget && (
+        <DeactivateModal
+          employee={deactivateTarget}
+          onClose={() => setDeactivateTarget(null)}
+          onConfirm={async () => {
+            const emp = deactivateTarget;
+            const { error } = await supabase.from("employees").update({ is_active: false }).eq("id", emp.id);
+            setDeactivateTarget(null);
+            if (error) { showError(error.message); return; }
+            setEditingId(null);
+            fetchData();
+            success(`${emp.first_name} ${emp.last_name} deactivated`);
+          }}
+        />
       )}
     </div>
   );
@@ -162,13 +182,22 @@ export default function AdminPage() {
 
 /* ── Inline Edit Row ── */
 
-function EditRow({ employee, roles, onCancel, onSave }: { employee: Employee; roles: typeof ROLES; onCancel: () => void; onSave: () => void }) {
+function EditRow({ employee, roles, onCancel, onSave, onDeactivate }: { employee: Employee; roles: typeof ROLES; onCancel: () => void; onSave: (msg: string) => void; onDeactivate: (emp: Employee) => void }) {
   const [role, setRole] = useState(employee.role);
   const [title, setTitle] = useState(employee.title || "");
   const [isActive, setIsActive] = useState(employee.is_active);
   const [hourlyRate, setHourlyRate] = useState(employee.hourly_rate?.toString() || "");
   const [saving, setSaving] = useState(false);
   const supabase = createClient();
+
+  const handleToggleActive = () => {
+    if (isActive) {
+      // Deactivating — show confirmation modal
+      onDeactivate(employee);
+    } else {
+      setIsActive(true);
+    }
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -179,7 +208,7 @@ function EditRow({ employee, roles, onCancel, onSave }: { employee: Employee; ro
       hourly_rate: hourlyRate ? parseFloat(hourlyRate) : null,
     }).eq("id", employee.id);
     setSaving(false);
-    onSave();
+    onSave(`${employee.first_name} ${employee.last_name} updated`);
   };
 
   const smallInput = "px-2 py-1.5 bg-ivs-bg border border-ivs-border rounded text-ivs-text text-xs focus:outline-none focus:ring-1 focus:ring-ivs-accent";
@@ -207,7 +236,7 @@ function EditRow({ employee, roles, onCancel, onSave }: { employee: Employee; ro
       </td>
       <td className="px-4 py-2 text-center">
         <button
-          onClick={() => setIsActive(!isActive)}
+          onClick={handleToggleActive}
           className={`px-2 py-0.5 text-xs font-medium rounded-full transition-colors ${isActive ? "bg-emerald-500/15 text-emerald-500 hover:bg-red-500/15 hover:text-red-500" : "bg-red-500/15 text-red-500 hover:bg-emerald-500/15 hover:text-emerald-500"}`}
         >
           {isActive ? "Active" : "Inactive"}
@@ -229,7 +258,7 @@ function EditRow({ employee, roles, onCancel, onSave }: { employee: Employee; ro
 
 /* ── Invite Modal ── */
 
-function InviteModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
+function InviteModal({ onClose, onCreated }: { onClose: () => void; onCreated: (name: string) => void }) {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -268,7 +297,7 @@ function InviteModal({ onClose, onCreated }: { onClose: () => void; onCreated: (
       setError(dbErr.message);
       return;
     }
-    onCreated();
+    onCreated(`${firstName} ${lastName}`);
   };
 
   return (
@@ -342,6 +371,45 @@ function InviteModal({ onClose, onCreated }: { onClose: () => void; onCreated: (
             className="px-5 py-2.5 bg-ivs-accent hover:bg-ivs-accent-hover text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
           >
             {saving ? "Adding..." : "Add User"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Deactivate Confirmation Modal ── */
+
+function DeactivateModal({ employee, onClose, onConfirm }: { employee: Employee; onClose: () => void; onConfirm: () => void }) {
+  const [confirming, setConfirming] = useState(false);
+
+  const handle = async () => {
+    setConfirming(true);
+    await onConfirm();
+    setConfirming(false);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="bg-ivs-bg-card border border-ivs-border rounded-xl w-full max-w-md mx-4 p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-full bg-orange-500/15 flex items-center justify-center">
+            <AlertTriangle size={20} className="text-orange-500" />
+          </div>
+          <h2 className="text-lg font-bold text-ivs-text">Deactivate User?</h2>
+        </div>
+        <p className="text-sm text-ivs-text-muted mb-2">
+          This will deactivate <strong className="text-ivs-text">{employee.first_name} {employee.last_name}</strong> ({employee.email}).
+        </p>
+        <p className="text-sm text-ivs-text-muted mb-6">
+          They will lose access to the system but their data (timesheets, reports, etc.) will be preserved. You can reactivate them later.
+        </p>
+        <div className="flex items-center justify-end gap-3">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-ivs-text-muted hover:text-ivs-text transition-colors">
+            Cancel
+          </button>
+          <button onClick={handle} disabled={confirming} className="px-5 py-2.5 bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
+            {confirming ? "Deactivating..." : "Deactivate"}
           </button>
         </div>
       </div>
