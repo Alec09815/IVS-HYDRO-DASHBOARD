@@ -67,8 +67,12 @@ export default function FieldAppPage() {
           <div>
             <h2 className="text-lg font-semibold text-ivs-text mb-4">Quick Actions</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <QuickAction icon={<Gauge size={24} />} title="Calibration Form" description="Record pump calibration data" color="from-cyan-500/20 to-cyan-600/5" />
-              <QuickAction icon={<FileText size={24} />} title="Production Form" description="Log daily production quantities" color="from-emerald-500/20 to-emerald-600/5" />
+              <Link href="/dashboard/field/calibration">
+                <QuickAction icon={<Gauge size={24} />} title="Calibration Form" description="Record pump calibration data" color="from-cyan-500/20 to-cyan-600/5" />
+              </Link>
+              <Link href="/dashboard/field/production">
+                <QuickAction icon={<FileText size={24} />} title="Production Form" description="Log daily production quantities" color="from-emerald-500/20 to-emerald-600/5" />
+              </Link>
               <QuickAction icon={<HardHat size={24} />} title="Safety Checklist" description="Complete pre-shift safety check" color="from-orange-500/20 to-orange-600/5" />
             </div>
           </div>

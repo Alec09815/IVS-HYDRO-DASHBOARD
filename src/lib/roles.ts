@@ -32,11 +32,11 @@ export const MODULE_ACCESS: Record<AppModule, UserRole[]> = {
   bids: ["admin", "executive", "pm", "estimator"],
   jobs: ["admin", "executive", "pm", "estimator", "lead_operator"],
   timesheets: ["admin", "executive", "pm", "estimator", "lead_operator", "shop_staff"],
-  field_app: ["admin", "pm", "lead_operator"],
-  production: ["admin", "executive", "pm", "lead_operator"],
-  invoicing: ["admin", "executive", "pm"],
-  equipment: ["admin", "pm", "lead_operator", "shop_staff"],
-  reports: ["admin", "executive", "pm"],
+  field_app: ["admin", "executive", "pm", "estimator", "lead_operator"],
+  production: ["admin", "executive", "pm", "estimator", "lead_operator"],
+  invoicing: ["admin", "executive", "pm", "estimator"],
+  equipment: ["admin", "executive", "pm", "estimator", "lead_operator", "shop_staff"],
+  reports: ["admin", "executive", "pm", "estimator"],
   admin: ["admin"],
 };
 

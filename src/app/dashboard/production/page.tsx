@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { BarChart3, Calendar, Search } from "lucide-react";
+import { BarChart3, Calendar, Search, Plus } from "lucide-react";
+import Link from "next/link";
 
 interface ProductionRow {
   id: string;
@@ -51,11 +52,19 @@ export default function ProductionPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-ivs-text">Production</h1>
-        <p className="text-sm text-ivs-text-muted mt-1">
-          {filtered.length} records &middot; {totalQty.toLocaleString()} total qty &middot; {totalPumpHrs.toFixed(1)} pump hours
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-ivs-text">Production</h1>
+          <p className="text-sm text-ivs-text-muted mt-1">
+            {filtered.length} records &middot; {totalQty.toLocaleString()} total qty &middot; {totalPumpHrs.toFixed(1)} pump hours
+          </p>
+        </div>
+        <Link
+          href="/dashboard/field/production"
+          className="flex items-center gap-2 px-4 py-2.5 bg-ivs-accent hover:bg-ivs-accent-hover text-white text-sm font-medium rounded-lg transition-colors"
+        >
+          <Plus size={16} /> New Entry
+        </Link>
       </div>
 
       <div className="flex items-center gap-2 bg-ivs-bg-card border border-ivs-border rounded-lg px-3 py-2 max-w-sm">

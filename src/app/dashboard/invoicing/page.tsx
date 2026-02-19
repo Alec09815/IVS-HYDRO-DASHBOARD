@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { DollarSign, Search, Filter } from "lucide-react";
+import { DollarSign, Search, Filter, Plus } from "lucide-react";
+import Link from "next/link";
 
 interface InvoiceRow {
   id: string;
@@ -59,11 +60,19 @@ export default function InvoicingPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-ivs-text">Invoicing</h1>
-        <p className="text-sm text-ivs-text-muted mt-1">
-          ${totalOutstanding.toLocaleString()} outstanding &middot; ${totalPaid.toLocaleString()} collected
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-ivs-text">Invoicing</h1>
+          <p className="text-sm text-ivs-text-muted mt-1">
+            ${totalOutstanding.toLocaleString()} outstanding &middot; ${totalPaid.toLocaleString()} collected
+          </p>
+        </div>
+        <Link
+          href="/dashboard/invoicing/new"
+          className="flex items-center gap-2 px-4 py-2.5 bg-ivs-accent hover:bg-ivs-accent-hover text-white text-sm font-medium rounded-lg transition-colors"
+        >
+          <Plus size={16} /> New Invoice
+        </Link>
       </div>
 
       <div className="flex items-center gap-3">

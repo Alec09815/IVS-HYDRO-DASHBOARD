@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Equipment, EquipmentStatus } from "@/lib/types";
-import { Wrench, Search, Filter } from "lucide-react";
+import { Wrench, Search, Filter, Plus } from "lucide-react";
+import Link from "next/link";
 
 const STATUS_BADGE: Record<EquipmentStatus, { bg: string; text: string; label: string }> = {
   available: { bg: "bg-emerald-500/15", text: "text-emerald-500", label: "Available" },
@@ -13,6 +15,7 @@ const STATUS_BADGE: Record<EquipmentStatus, { bg: string; text: string; label: s
 };
 
 export default function EquipmentPage() {
+  const router = useRouter();
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
@@ -39,11 +42,19 @@ export default function EquipmentPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-ivs-text">Equipment</h1>
-        <p className="text-sm text-ivs-text-muted mt-1">
-          {equipment.length} total &middot; {availableCount} available &middot; {deployedCount} deployed
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-ivs-text">Equipment</h1>
+          <p className="text-sm text-ivs-text-muted mt-1">
+            {equipment.length} total &middot; {availableCount} available &middot; {deployedCount} deployed
+          </p>
+        </div>
+        <Link
+          href="/dashboard/equipment/new"
+          className="flex items-center gap-2 px-4 py-2.5 bg-ivs-accent hover:bg-ivs-accent-hover text-white text-sm font-medium rounded-lg transition-colors"
+        >
+          <Plus size={16} /> Add Equipment
+        </Link>
       </div>
 
       <div className="flex items-center gap-3">
@@ -88,7 +99,7 @@ export default function EquipmentPage() {
               {filtered.map((eq) => {
                 const badge = STATUS_BADGE[eq.status];
                 return (
-                  <tr key={eq.id} className="border-b border-ivs-border/50 hover:bg-ivs-bg-light/50 transition-colors">
+                  <tr key={eq.id} onClick={() => router.push(`/dashboard/equipment/${eq.id}`)} className="border-b border-ivs-border/50 hover:bg-ivs-bg-light/50 transition-colors cursor-pointer">
                     <td className="px-4 py-3 font-mono text-sm text-ivs-accent">{eq.asset_number}</td>
                     <td className="px-4 py-3 text-sm font-medium text-ivs-text">{eq.name}</td>
                     <td className="px-4 py-3 text-xs text-ivs-text-muted">{eq.category}</td>

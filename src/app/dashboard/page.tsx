@@ -1,7 +1,9 @@
 "use client";
 
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/auth-context";
 import { hasModuleAccess, type AppModule } from "@/lib/roles";
+import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -103,8 +105,51 @@ const MODULE_TILES: ModuleTile[] = [
   },
 ];
 
+interface DashboardStats {
+  activeJobs: number;
+  openBids: number;
+  pipelineValue: number;
+  crewOnSite: number;
+  crewJobCount: number;
+  pendingTimesheets: number;
+  pendingCOs: number;
+}
+
 export default function DashboardPage() {
   const { employee, role, loading } = useAuth();
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const supabase = createClient();
+
+  const fetchStats = useCallback(async () => {
+    const today = new Date().toISOString().split("T")[0];
+    const [jobsRes, bidsRes, manUpRes, tsRes, coRes] = await Promise.all([
+      supabase.from("job_cards").select("id", { count: "exact", head: true }).in("status", ["active", "mobilizing"]),
+      supabase.from("bids").select("estimated_value").in("status", ["draft", "submitted"]),
+      supabase.from("man_up_reports").select("crew_members, job_card_id").eq("report_date", today),
+      supabase.from("timesheets").select("id", { count: "exact", head: true }).eq("status", "submitted"),
+      supabase.from("change_orders").select("id", { count: "exact", head: true }).eq("status", "submitted"),
+    ]);
+
+    const bids = bidsRes.data ?? [];
+    const manUps = manUpRes.data ?? [];
+    const totalCrew = manUps.reduce((sum, r) => {
+      const members = Array.isArray(r.crew_members) ? r.crew_members : [];
+      return sum + members.length;
+    }, 0);
+    const uniqueJobs = new Set(manUps.map((r) => r.job_card_id)).size;
+
+    setStats({
+      activeJobs: jobsRes.count ?? 0,
+      openBids: bids.length,
+      pipelineValue: bids.reduce((s, b) => s + (Number(b.estimated_value) || 0), 0),
+      crewOnSite: totalCrew,
+      crewJobCount: uniqueJobs,
+      pendingTimesheets: tsRes.count ?? 0,
+      pendingCOs: coRes.count ?? 0,
+    });
+  }, [supabase]);
+
+  useEffect(() => { fetchStats(); }, [fetchStats]);
 
   if (loading) {
     return (
@@ -117,6 +162,8 @@ export default function DashboardPage() {
   const visibleTiles = MODULE_TILES.filter((tile) =>
     hasModuleAccess(role, tile.module)
   );
+
+  const pendingTotal = (stats?.pendingTimesheets ?? 0) + (stats?.pendingCOs ?? 0);
 
   return (
     <div className="space-y-8">
@@ -142,27 +189,27 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           label="Active Jobs"
-          value="—"
+          value={stats ? String(stats.activeJobs) : "—"}
           icon={<Briefcase size={20} />}
-          trend="+2 this month"
+          trend={stats ? `${stats.activeJobs} mobilizing or active` : "Loading..."}
         />
         <StatCard
           label="Open Bids"
-          value="—"
+          value={stats ? String(stats.openBids) : "—"}
           icon={<TrendingUp size={20} />}
-          trend="$0 pipeline"
+          trend={stats ? `$${stats.pipelineValue.toLocaleString()} pipeline` : "Loading..."}
         />
         <StatCard
           label="Crew On Site"
-          value="—"
+          value={stats ? String(stats.crewOnSite) : "—"}
           icon={<Users size={20} />}
-          trend="across 0 jobs"
+          trend={stats ? `across ${stats.crewJobCount} job${stats.crewJobCount !== 1 ? "s" : ""} today` : "Loading..."}
         />
         <StatCard
           label="Pending Approvals"
-          value="—"
+          value={stats ? String(pendingTotal) : "—"}
           icon={<AlertTriangle size={20} />}
-          trend="timesheets & COs"
+          trend={stats ? `${stats.pendingTimesheets} timesheets, ${stats.pendingCOs} COs` : "Loading..."}
         />
       </div>
 

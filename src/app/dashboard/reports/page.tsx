@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { ClipboardList, Calendar, Search } from "lucide-react";
+import { ClipboardList, Calendar, Search, Plus } from "lucide-react";
+import Link from "next/link";
 
 interface WeeklyReportRow {
   id: string;
@@ -48,9 +49,17 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-ivs-text">Weekly Reports</h1>
-        <p className="text-sm text-ivs-text-muted mt-1">{reports.length} reports submitted</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-ivs-text">Weekly Reports</h1>
+          <p className="text-sm text-ivs-text-muted mt-1">{reports.length} reports submitted</p>
+        </div>
+        <Link
+          href="/dashboard/reports/new"
+          className="flex items-center gap-2 px-4 py-2.5 bg-ivs-accent hover:bg-ivs-accent-hover text-white text-sm font-medium rounded-lg transition-colors"
+        >
+          <Plus size={16} /> New Report
+        </Link>
       </div>
 
       <div className="flex items-center gap-2 bg-ivs-bg-card border border-ivs-border rounded-lg px-3 py-2 max-w-sm">

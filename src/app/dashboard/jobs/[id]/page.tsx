@@ -3,11 +3,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import type { JobCard, JobStatus, ChangeOrder, OnsiteContact, CrewAssignment, RentalEquipment } from "@/lib/types";
+import type { JobCard, JobStatus, ChangeOrder, ChangeOrderStatus, OnsiteContact, CrewAssignment, RentalEquipment } from "@/lib/types";
 import Link from "next/link";
 import {
   ArrowLeft, MapPin, DollarSign, Calendar, Users, Wrench,
-  FileText, Settings2, Truck, AlertCircle, Plus, Trash2,
+  FileText, Settings2, Truck, AlertCircle, Plus, Trash2, X,
 } from "lucide-react";
 
 const STATUS_OPTIONS: { value: JobStatus; label: string; color: string }[] = [
@@ -19,6 +19,14 @@ const STATUS_OPTIONS: { value: JobStatus; label: string; color: string }[] = [
   { value: "closed", label: "Closed", color: "bg-gray-600" },
 ];
 
+const CO_STATUS_BADGE: Record<string, { bg: string; text: string }> = {
+  draft: { bg: "bg-gray-500/15", text: "text-gray-400" },
+  submitted: { bg: "bg-blue-500/15", text: "text-blue-500" },
+  approved: { bg: "bg-emerald-500/15", text: "text-emerald-500" },
+  rejected: { bg: "bg-red-500/15", text: "text-red-500" },
+  invoiced: { bg: "bg-purple-500/15", text: "text-purple-500" },
+};
+
 export default function JobDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -26,6 +34,7 @@ export default function JobDetailPage() {
   const [changeOrders, setChangeOrders] = useState<ChangeOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [showCOModal, setShowCOModal] = useState(false);
   const supabase = createClient();
 
   const fetchJob = useCallback(async () => {
@@ -51,17 +60,9 @@ export default function JobDetailPage() {
     setSaving(false);
   };
 
-  const addChangeOrder = async () => {
-    if (!job) return;
-    const coNum = `CO-${String(changeOrders.length + 1).padStart(2, "0")}`;
-    const { data, error } = await supabase.from("change_orders").insert({
-      job_card_id: job.id,
-      co_number: coNum,
-      description: "New change order",
-      amount: 0,
-      status: "draft",
-    }).select().single();
-    if (!error && data) setChangeOrders([...changeOrders, data as ChangeOrder]);
+  const handleCOCreated = (co: ChangeOrder) => {
+    setChangeOrders([...changeOrders, co]);
+    setShowCOModal(false);
   };
 
   const deleteChangeOrder = async (coId: string) => {
@@ -237,33 +238,38 @@ export default function JobDetailPage() {
                 <tr className="border-b border-ivs-border text-ivs-text-muted text-xs">
                   <th className="px-4 py-2 text-left">CO #</th>
                   <th className="px-4 py-2 text-left">Description</th>
+                  <th className="px-4 py-2 text-left">Reason</th>
                   <th className="px-4 py-2 text-left">Status</th>
                   <th className="px-4 py-2 text-right">Amount</th>
                   <th className="px-4 py-2 w-10"></th>
                 </tr>
               </thead>
               <tbody>
-                {changeOrders.map((co) => (
-                  <tr key={co.id} className="border-b border-ivs-border/50">
-                    <td className="px-4 py-2 font-mono text-ivs-accent">{co.co_number}</td>
-                    <td className="px-4 py-2 text-ivs-text">{co.description}</td>
-                    <td className="px-4 py-2">
-                      <span className="px-2 py-0.5 text-xs rounded-full bg-ivs-bg-card text-ivs-text-muted border border-ivs-border">
-                        {co.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2 text-right text-ivs-text">${(co.amount || 0).toLocaleString()}</td>
-                    <td className="px-4 py-2">
-                      <button onClick={() => deleteChangeOrder(co.id)} className="text-ivs-text-muted hover:text-ivs-danger">
-                        <Trash2 size={14} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {changeOrders.map((co) => {
+                  const badge = CO_STATUS_BADGE[co.status] ?? CO_STATUS_BADGE.draft;
+                  return (
+                    <tr key={co.id} className="border-b border-ivs-border/50">
+                      <td className="px-4 py-2 font-mono text-ivs-accent">{co.co_number}</td>
+                      <td className="px-4 py-2 text-ivs-text">{co.description}</td>
+                      <td className="px-4 py-2 text-xs text-ivs-text-muted">{co.reason || "—"}</td>
+                      <td className="px-4 py-2">
+                        <span className={`px-2 py-0.5 text-xs font-medium rounded-full capitalize ${badge.bg} ${badge.text}`}>
+                          {co.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2 text-right text-ivs-text">${(co.amount || 0).toLocaleString()}</td>
+                      <td className="px-4 py-2">
+                        <button onClick={() => deleteChangeOrder(co.id)} className="text-ivs-text-muted hover:text-ivs-danger">
+                          <Trash2 size={14} />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
               <tfoot>
                 <tr className="border-t border-ivs-border">
-                  <td colSpan={3} className="px-4 py-2 text-xs text-ivs-text-muted font-medium">Total</td>
+                  <td colSpan={4} className="px-4 py-2 text-xs text-ivs-text-muted font-medium">Total</td>
                   <td className="px-4 py-2 text-right font-medium text-ivs-text">${coTotal.toLocaleString()}</td>
                   <td></td>
                 </tr>
@@ -273,7 +279,7 @@ export default function JobDetailPage() {
         ) : (
           <p className="text-sm text-ivs-text-muted">No change orders yet.</p>
         )}
-        <button onClick={addChangeOrder} className="mt-3 flex items-center gap-2 text-sm text-ivs-accent hover:text-ivs-accent-hover transition-colors">
+        <button onClick={() => setShowCOModal(true)} className="mt-3 flex items-center gap-2 text-sm text-ivs-accent hover:text-ivs-accent-hover transition-colors">
           <Plus size={14} /> Add Change Order
         </button>
       </Section>
@@ -284,9 +290,165 @@ export default function JobDetailPage() {
           <p className="text-sm text-ivs-text-muted whitespace-pre-wrap">{job.notes}</p>
         </Section>
       )}
+
+      {/* Change Order Modal */}
+      {showCOModal && (
+        <ChangeOrderModal
+          jobId={job.id}
+          nextNumber={changeOrders.length + 1}
+          onClose={() => setShowCOModal(false)}
+          onCreated={handleCOCreated}
+        />
+      )}
     </div>
   );
 }
+
+/* ── Change Order Modal ── */
+
+function ChangeOrderModal({
+  jobId,
+  nextNumber,
+  onClose,
+  onCreated,
+}: {
+  jobId: string;
+  nextNumber: number;
+  onClose: () => void;
+  onCreated: (co: ChangeOrder) => void;
+}) {
+  const supabase = createClient();
+  const [coNumber] = useState(`CO-${String(nextNumber).padStart(2, "0")}`);
+  const [description, setDescription] = useState("");
+  const [reason, setReason] = useState("");
+  const [amount, setAmount] = useState("");
+  const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const inputCls = "w-full px-3 py-2 bg-ivs-bg border border-ivs-border rounded-lg text-ivs-text text-sm placeholder-ivs-text-muted focus:outline-none focus:ring-2 focus:ring-ivs-accent focus:border-transparent";
+  const labelCls = "block text-sm font-medium text-ivs-text-muted mb-1";
+
+  const handleSubmit = async () => {
+    if (!description) {
+      setError("Description is required.");
+      return;
+    }
+    setSaving(true);
+    setError("");
+
+    const { data, error: dbErr } = await supabase
+      .from("change_orders")
+      .insert({
+        job_card_id: jobId,
+        co_number: coNumber,
+        description,
+        reason: reason || null,
+        amount: parseFloat(amount) || 0,
+        status: "draft" as ChangeOrderStatus,
+        notes: notes || null,
+      })
+      .select()
+      .single();
+
+    setSaving(false);
+    if (dbErr) {
+      setError(dbErr.message);
+      return;
+    }
+    if (data) onCreated(data as ChangeOrder);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="bg-ivs-bg-card border border-ivs-border rounded-xl w-full max-w-lg mx-4 p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold text-ivs-text">New Change Order</h2>
+          <button onClick={onClose} className="p-1 text-ivs-text-muted hover:text-ivs-text">
+            <X size={20} />
+          </button>
+        </div>
+
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-lg px-3 py-2">
+            {error}
+          </div>
+        )}
+
+        <div>
+          <label className={labelCls}>CO Number</label>
+          <input type="text" value={coNumber} readOnly className={`${inputCls} opacity-60`} />
+        </div>
+
+        <div>
+          <label className={labelCls}>Description *</label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={2}
+            placeholder="Describe the scope change..."
+            className={inputCls}
+          />
+        </div>
+
+        <div>
+          <label className={labelCls}>Reason</label>
+          <select value={reason} onChange={(e) => setReason(e.target.value)} className={inputCls}>
+            <option value="">Select reason...</option>
+            <option value="Scope Change">Scope Change</option>
+            <option value="Unforeseen Conditions">Unforeseen Conditions</option>
+            <option value="Design Revision">Design Revision</option>
+            <option value="Client Request">Client Request</option>
+            <option value="Additional Work">Additional Work</option>
+            <option value="Material Change">Material Change</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <div>
+          <label className={labelCls}>Amount ($)</label>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ivs-text-muted text-sm">$</span>
+            <input
+              type="number"
+              step="0.01"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="0.00"
+              className={`${inputCls} pl-7`}
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className={labelCls}>Notes</label>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={2}
+            placeholder="Additional details..."
+            className={inputCls}
+          />
+        </div>
+
+        <div className="flex items-center justify-end gap-3 pt-2">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-ivs-text-muted hover:text-ivs-text transition-colors">
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={saving}
+            className="px-5 py-2.5 bg-ivs-accent hover:bg-ivs-accent-hover text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+          >
+            {saving ? "Creating..." : "Create Change Order"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Helper Components ── */
 
 function Section({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
   return (
