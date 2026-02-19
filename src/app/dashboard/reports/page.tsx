@@ -79,7 +79,7 @@ export default function ReportsPage() {
       ) : (
         <div className="space-y-3">
           {filtered.map((r) => (
-            <div key={r.id} className="bg-ivs-bg-card border border-ivs-border rounded-xl p-5 hover:border-ivs-accent/30 transition-colors">
+            <Link key={r.id} href={`/dashboard/reports/${r.id}`} className="block bg-ivs-bg-card border border-ivs-border rounded-xl p-5 hover:border-ivs-accent/30 transition-colors">
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
@@ -112,7 +112,7 @@ export default function ReportsPage() {
               </div>
 
               {r.summary && <p className="text-sm text-ivs-text-muted line-clamp-2">{r.summary}</p>}
-            </div>
+            </Link>
           ))}
         </div>
       )}

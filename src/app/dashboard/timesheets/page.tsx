@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Clock, CheckCircle, XCircle, Search, Filter } from "lucide-react";
+import { Clock, CheckCircle, XCircle, Search, Filter, Plus } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 interface TimesheetRow {
   id: string;
@@ -34,6 +36,7 @@ export default function TimesheetsPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [search, setSearch] = useState("");
   const supabase = createClient();
+  const router = useRouter();
 
   const fetchTimesheets = useCallback(async () => {
     setLoading(true);
@@ -77,11 +80,19 @@ export default function TimesheetsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-ivs-text">Timesheets</h1>
-        <p className="text-sm text-ivs-text-muted mt-1">
-          {pendingCount} pending review &middot; {totalHours.toFixed(1)} total hours shown
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-ivs-text">Timesheets</h1>
+          <p className="text-sm text-ivs-text-muted mt-1">
+            {pendingCount} pending review &middot; {totalHours.toFixed(1)} total hours shown
+          </p>
+        </div>
+        <Link
+          href="/dashboard/timesheets/new"
+          className="flex items-center gap-2 px-4 py-2.5 bg-ivs-accent hover:bg-ivs-accent-hover text-white text-sm font-medium rounded-lg transition-colors"
+        >
+          <Plus size={16} /> New Timesheet
+        </Link>
       </div>
 
       {/* Filters */}
@@ -142,7 +153,7 @@ export default function TimesheetsPage() {
                 const status = STATUS_BADGE[ts.status] ?? STATUS_BADGE.draft;
                 const total = (ts.total_regular_hours || 0) + (ts.total_overtime_hours || 0);
                 return (
-                  <tr key={ts.id} className="border-b border-ivs-border/50 hover:bg-ivs-bg-light/50 transition-colors">
+                  <tr key={ts.id} onClick={() => router.push(`/dashboard/timesheets/${ts.id}`)} className="border-b border-ivs-border/50 hover:bg-ivs-bg-light/50 transition-colors cursor-pointer">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-ivs-accent/20 flex items-center justify-center text-ivs-accent text-xs font-bold flex-shrink-0">

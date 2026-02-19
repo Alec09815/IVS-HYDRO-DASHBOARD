@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { BarChart3, Calendar, Search, Plus } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 interface ProductionRow {
   id: string;
@@ -24,6 +25,7 @@ export default function ProductionPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const supabase = createClient();
+  const router = useRouter();
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -98,7 +100,7 @@ export default function ProductionPage() {
             </thead>
             <tbody>
               {filtered.map((r) => (
-                <tr key={r.id} className="border-b border-ivs-border/50 hover:bg-ivs-bg-light/50 transition-colors">
+                <tr key={r.id} onClick={() => router.push(`/dashboard/production/${r.id}`)} className="border-b border-ivs-border/50 hover:bg-ivs-bg-light/50 transition-colors cursor-pointer">
                   <td className="px-4 py-3 text-sm text-ivs-text">
                     <div className="flex items-center gap-1.5"><Calendar size={13} className="text-ivs-text-muted" />{new Date(r.form_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</div>
                   </td>

@@ -3,6 +3,7 @@
 import { Draggable } from "@hello-pangea/dnd";
 import type { Bid } from "@/lib/types";
 import { MapPin, DollarSign, Calendar, ArrowRightCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 interface BidCardProps {
   bid: Bid;
@@ -11,6 +12,7 @@ interface BidCardProps {
 }
 
 export function BidCard({ bid, index, onConvertToJob }: BidCardProps) {
+  const router = useRouter();
   const formatCurrency = (val: number | null) =>
     val ? `$${val.toLocaleString()}` : "—";
 
@@ -21,7 +23,8 @@ export function BidCard({ bid, index, onConvertToJob }: BidCardProps) {
           ref={provided.innerRef}
           {...provided.draggableProps}
           {...provided.dragHandleProps}
-          className={`bg-ivs-bg border border-ivs-border rounded-lg p-3 mb-2 cursor-grab active:cursor-grabbing transition-shadow ${
+          onClick={() => router.push(`/dashboard/bids/${bid.id}`)}
+          className={`bg-ivs-bg border border-ivs-border rounded-lg p-3 mb-2 cursor-grab active:cursor-grabbing transition-shadow hover:border-ivs-accent/40 ${
             snapshot.isDragging ? "shadow-lg shadow-ivs-accent/20 border-ivs-accent/40" : ""
           }`}
         >

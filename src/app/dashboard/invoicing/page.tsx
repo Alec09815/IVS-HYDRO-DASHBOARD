@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { DollarSign, Search, Filter, Plus } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 interface InvoiceRow {
   id: string;
@@ -32,6 +33,7 @@ export default function InvoicingPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [search, setSearch] = useState("");
   const supabase = createClient();
+  const router = useRouter();
 
   const fetchInvoices = useCallback(async () => {
     setLoading(true);
@@ -117,7 +119,7 @@ export default function InvoicingPage() {
               {filtered.map((inv) => {
                 const badge = STATUS_BADGE[inv.status] ?? STATUS_BADGE.draft;
                 return (
-                  <tr key={inv.id} className="border-b border-ivs-border/50 hover:bg-ivs-bg-light/50 transition-colors">
+                  <tr key={inv.id} onClick={() => router.push(`/dashboard/invoicing/${inv.id}`)} className="border-b border-ivs-border/50 hover:bg-ivs-bg-light/50 transition-colors cursor-pointer">
                     <td className="px-4 py-3 font-mono text-sm text-ivs-accent">{inv.invoice_number}</td>
                     <td className="px-4 py-3 text-xs font-mono text-ivs-text-muted">{inv.job_card?.job_number}</td>
                     <td className="px-4 py-3 text-sm text-ivs-text">{inv.job_card?.client_name}</td>
