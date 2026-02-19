@@ -174,7 +174,7 @@ export default function ManUpReportPage() {
             const crewCount = (report.crew_members ?? []).length;
             const eqCount = (report.equipment_on_site ?? []).length;
             return (
-              <div key={report.id} className="bg-ivs-bg-card border border-ivs-border rounded-xl p-5 hover:border-ivs-accent/30 transition-colors">
+              <Link key={report.id} href={`/dashboard/jobs/man-up/${report.id}`} className="block bg-ivs-bg-card border border-ivs-border rounded-xl p-5 hover:border-ivs-accent/30 transition-colors">
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
@@ -232,7 +232,7 @@ export default function ManUpReportPage() {
                 {report.notes && (
                   <p className="mt-2 text-xs text-ivs-text-muted line-clamp-2">{report.notes}</p>
                 )}
-              </div>
+              </Link>
             );
           })}
         </div>

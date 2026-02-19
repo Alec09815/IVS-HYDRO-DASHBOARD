@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { JobCard, JobStatus } from "@/lib/types";
 import Link from "next/link";
-import { Plus, Calendar, MapPin, DollarSign, Users, ClipboardList } from "lucide-react";
+import { Plus, Calendar, MapPin, DollarSign, Users, ClipboardList, Search } from "lucide-react";
 
 const STATUS_BADGE: Record<JobStatus, { bg: string; text: string; label: string }> = {
   pending: { bg: "bg-yellow-500/15", text: "text-yellow-500", label: "Pending" },
@@ -22,6 +22,7 @@ export default function JobsPage() {
   const [jobs, setJobs] = useState<JobCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"active" | "completed">("active");
+  const [search, setSearch] = useState("");
   const supabase = createClient();
 
   const fetchJobs = useCallback(async () => {
@@ -36,9 +37,13 @@ export default function JobsPage() {
 
   useEffect(() => { fetchJobs(); }, [fetchJobs]);
 
-  const filtered = jobs.filter((j) =>
-    tab === "active" ? ACTIVE_STATUSES.includes(j.status) : COMPLETED_STATUSES.includes(j.status)
-  );
+  const filtered = jobs.filter((j) => {
+    const inTab = tab === "active" ? ACTIVE_STATUSES.includes(j.status) : COMPLETED_STATUSES.includes(j.status);
+    if (!inTab) return false;
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return `${j.job_number} ${j.project_name} ${j.client_name} ${j.location || ""}`.toLowerCase().includes(q);
+  });
 
   const activeCount = jobs.filter((j) => ACTIVE_STATUSES.includes(j.status)).length;
   const completedCount = jobs.filter((j) => COMPLETED_STATUSES.includes(j.status)).length;
@@ -86,7 +91,8 @@ export default function JobsPage() {
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Tabs & Search */}
+      <div className="flex items-center justify-between gap-4">
       <div className="flex gap-1 bg-ivs-bg-light border border-ivs-border rounded-lg p-1 w-fit">
         <button
           onClick={() => setTab("active")}
@@ -104,6 +110,17 @@ export default function JobsPage() {
         >
           Completed <span className="ml-1 text-xs opacity-70">{completedCount}</span>
         </button>
+      </div>
+      <div className="flex items-center gap-2 bg-ivs-bg-card border border-ivs-border rounded-lg px-3 py-2 w-64">
+        <Search size={16} className="text-ivs-text-muted flex-shrink-0" />
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search jobs..."
+          className="bg-transparent text-sm text-ivs-text placeholder-ivs-text-muted outline-none w-full"
+        />
+      </div>
       </div>
 
       {/* Job Table */}

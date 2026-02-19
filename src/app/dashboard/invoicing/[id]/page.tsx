@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/contexts/toast-context";
 import type { InvoiceStatus } from "@/lib/types";
 import Link from "next/link";
 import {
@@ -44,6 +45,7 @@ export default function InvoiceDetailPage() {
   const [editing, setEditing] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [form, setForm] = useState<Partial<InvoiceDetail>>({});
+  const { success, error: showError } = useToast();
   const supabase = createClient();
 
   const fetchInvoice = useCallback(async () => {
@@ -74,9 +76,11 @@ export default function InvoiceDetailPage() {
     setSaving(true);
     const updates: Record<string, unknown> = { status: newStatus };
     if (newStatus === "paid") updates.paid_date = new Date().toISOString().split("T")[0];
-    await supabase.from("invoices").update(updates).eq("id", invoice.id);
+    const { error } = await supabase.from("invoices").update(updates).eq("id", invoice.id);
+    if (error) { showError(error.message); setSaving(false); return; }
     setInvoice({ ...invoice, ...updates, status: newStatus } as InvoiceDetail);
     setSaving(false);
+    success(`Invoice marked as ${newStatus}`);
   };
 
   const handleSave = async () => {
@@ -93,15 +97,18 @@ export default function InvoiceDetailPage() {
       due_date: form.due_date || null,
       notes: form.notes || null,
     };
-    await supabase.from("invoices").update(updates).eq("id", invoice.id);
+    const { error } = await supabase.from("invoices").update(updates).eq("id", invoice.id);
+    if (error) { showError(error.message); setSaving(false); return; }
     setInvoice({ ...invoice, ...updates } as InvoiceDetail);
     setEditing(false);
     setSaving(false);
+    success("Invoice updated");
   };
 
   const handleDelete = async () => {
     if (!invoice) return;
     await supabase.from("invoices").delete().eq("id", invoice.id);
+    success("Invoice deleted");
     router.push("/dashboard/invoicing");
   };
 

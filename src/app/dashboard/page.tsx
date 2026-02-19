@@ -20,6 +20,11 @@ import {
   Users,
   AlertTriangle,
 } from "lucide-react";
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell,
+  AreaChart, Area,
+} from "recharts";
 
 interface ModuleTile {
   label: string;
@@ -115,9 +120,33 @@ interface DashboardStats {
   pendingCOs: number;
 }
 
+interface JobStatusCount { status: string; count: number }
+interface BidStatusCount { status: string; count: number }
+interface RevenuePoint { month: string; invoiced: number; paid: number }
+
+const JOB_COLORS: Record<string, string> = {
+  pending: "#F59E0B",
+  mobilizing: "#3B82F6",
+  active: "#10B981",
+  on_hold: "#F97316",
+  complete: "#9CA3AF",
+  closed: "#6B7280",
+};
+
+const BID_COLORS: Record<string, string> = {
+  draft: "#F59E0B",
+  submitted: "#3B82F6",
+  won: "#10B981",
+  lost: "#EF4444",
+  cancelled: "#6B7280",
+};
+
 export default function DashboardPage() {
   const { employee, role, loading } = useAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [jobsByStatus, setJobsByStatus] = useState<JobStatusCount[]>([]);
+  const [bidsByStatus, setBidsByStatus] = useState<BidStatusCount[]>([]);
+  const [revenueData, setRevenueData] = useState<RevenuePoint[]>([]);
   const supabase = createClient();
 
   const fetchStats = useCallback(async () => {
@@ -149,7 +178,47 @@ export default function DashboardPage() {
     });
   }, [supabase]);
 
-  useEffect(() => { fetchStats(); }, [fetchStats]);
+  const fetchChartData = useCallback(async () => {
+    // Jobs by status
+    const { data: allJobs } = await supabase.from("job_cards").select("status");
+    if (allJobs) {
+      const counts: Record<string, number> = {};
+      allJobs.forEach((j) => { counts[j.status] = (counts[j.status] || 0) + 1; });
+      setJobsByStatus(Object.entries(counts).map(([status, count]) => ({ status, count })));
+    }
+
+    // Bids by status
+    const { data: allBids } = await supabase.from("bids").select("status");
+    if (allBids) {
+      const counts: Record<string, number> = {};
+      allBids.forEach((b) => { counts[b.status] = (counts[b.status] || 0) + 1; });
+      setBidsByStatus(Object.entries(counts).map(([status, count]) => ({ status, count })));
+    }
+
+    // Revenue by month (last 6 months from invoices)
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    const { data: invoices } = await supabase
+      .from("invoices")
+      .select("amount, status, invoice_date")
+      .gte("invoice_date", sixMonthsAgo.toISOString().split("T")[0])
+      .in("status", ["sent", "paid"])
+      .order("invoice_date");
+
+    if (invoices) {
+      const monthMap: Record<string, { invoiced: number; paid: number }> = {};
+      invoices.forEach((inv) => {
+        const date = new Date(inv.invoice_date);
+        const key = date.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+        if (!monthMap[key]) monthMap[key] = { invoiced: 0, paid: 0 };
+        monthMap[key].invoiced += Number(inv.amount) || 0;
+        if (inv.status === "paid") monthMap[key].paid += Number(inv.amount) || 0;
+      });
+      setRevenueData(Object.entries(monthMap).map(([month, vals]) => ({ month, ...vals })));
+    }
+  }, [supabase]);
+
+  useEffect(() => { fetchStats(); fetchChartData(); }, [fetchStats, fetchChartData]);
 
   if (loading) {
     return (
@@ -211,6 +280,107 @@ export default function DashboardPage() {
           icon={<AlertTriangle size={20} />}
           trend={stats ? `${stats.pendingTimesheets} timesheets, ${stats.pendingCOs} COs` : "Loading..."}
         />
+      </div>
+
+      {/* Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Jobs by Status */}
+        <div className="bg-ivs-bg-card border border-ivs-border rounded-xl p-5">
+          <h3 className="text-sm font-semibold text-ivs-text mb-4">Jobs by Status</h3>
+          {jobsByStatus.length > 0 ? (
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={jobsByStatus}>
+                <XAxis dataKey="status" tick={{ fill: "#8b8fa3", fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: "#8b8fa3", fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: "#1a1d2e", border: "1px solid #2a2d3e", borderRadius: "8px" }}
+                  labelStyle={{ color: "#e1e4ed" }}
+                  itemStyle={{ color: "#e1e4ed" }}
+                />
+                <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                  {jobsByStatus.map((entry, idx) => (
+                    <Cell key={idx} fill={JOB_COLORS[entry.status] || "#3B82F6"} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-[200px] flex items-center justify-center text-ivs-text-muted text-sm">No data</div>
+          )}
+        </div>
+
+        {/* Bid Pipeline */}
+        <div className="bg-ivs-bg-card border border-ivs-border rounded-xl p-5">
+          <h3 className="text-sm font-semibold text-ivs-text mb-4">Bid Pipeline</h3>
+          {bidsByStatus.length > 0 ? (
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart>
+                <Pie
+                  data={bidsByStatus}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={50}
+                  outerRadius={80}
+                  dataKey="count"
+                  nameKey="status"
+                  stroke="none"
+                >
+                  {bidsByStatus.map((entry, idx) => (
+                    <Cell key={idx} fill={BID_COLORS[entry.status] || "#6B7280"} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{ backgroundColor: "#1a1d2e", border: "1px solid #2a2d3e", borderRadius: "8px" }}
+                  labelStyle={{ color: "#e1e4ed" }}
+                  itemStyle={{ color: "#e1e4ed" }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-[200px] flex items-center justify-center text-ivs-text-muted text-sm">No data</div>
+          )}
+          {/* Legend */}
+          <div className="flex flex-wrap gap-3 mt-2">
+            {bidsByStatus.map((b) => (
+              <div key={b.status} className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: BID_COLORS[b.status] || "#6B7280" }} />
+                <span className="text-xs text-ivs-text-muted capitalize">{b.status} ({b.count})</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Revenue Trend */}
+        <div className="bg-ivs-bg-card border border-ivs-border rounded-xl p-5">
+          <h3 className="text-sm font-semibold text-ivs-text mb-4">Revenue (6 Mo)</h3>
+          {revenueData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={200}>
+              <AreaChart data={revenueData}>
+                <defs>
+                  <linearGradient id="invoicedGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="paidGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10B981" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="month" tick={{ fill: "#8b8fa3", fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: "#8b8fa3", fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: "#1a1d2e", border: "1px solid #2a2d3e", borderRadius: "8px" }}
+                  labelStyle={{ color: "#e1e4ed" }}
+                  formatter={(value) => [`$${Number(value).toLocaleString()}`, ""]}
+                />
+                <Area type="monotone" dataKey="invoiced" stroke="#3B82F6" fill="url(#invoicedGrad)" strokeWidth={2} name="Invoiced" />
+                <Area type="monotone" dataKey="paid" stroke="#10B981" fill="url(#paidGrad)" strokeWidth={2} name="Paid" />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-[200px] flex items-center justify-center text-ivs-text-muted text-sm">No invoice data yet</div>
+          )}
+        </div>
       </div>
 
       {/* Module Tiles */}

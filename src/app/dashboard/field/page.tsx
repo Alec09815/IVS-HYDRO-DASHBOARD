@@ -73,7 +73,9 @@ export default function FieldAppPage() {
               <Link href="/dashboard/field/production">
                 <QuickAction icon={<FileText size={24} />} title="Production Form" description="Log daily production quantities" color="from-emerald-500/20 to-emerald-600/5" />
               </Link>
-              <QuickAction icon={<HardHat size={24} />} title="Safety Checklist" description="Complete pre-shift safety check" color="from-orange-500/20 to-orange-600/5" />
+              <Link href="/dashboard/field/safety">
+                <QuickAction icon={<HardHat size={24} />} title="Safety Checklist" description="Complete pre-shift safety check" color="from-orange-500/20 to-orange-600/5" />
+              </Link>
             </div>
           </div>
         </>

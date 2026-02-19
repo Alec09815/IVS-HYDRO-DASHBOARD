@@ -151,12 +151,12 @@ export default function NewTimesheetPage() {
           timesheet_id: data.id,
           work_date: l.work_date,
           job_card_id: l.job_card_id || null,
-          hours: l.hours || 0,
+          regular_hours: l.hours || 0,
           overtime_hours: l.overtime_hours || 0,
           description: l.description || null,
         }));
       if (linePayloads.length > 0) {
-        await supabase.from("timesheet_lines").insert(linePayloads);
+        await supabase.from("time_entries").insert(linePayloads);
       }
     }
 

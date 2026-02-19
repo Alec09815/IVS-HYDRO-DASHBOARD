@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/contexts/toast-context";
 import Link from "next/link";
 import {
   ArrowLeft, Clock, CheckCircle, XCircle, AlertCircle,
@@ -20,7 +21,7 @@ interface TimesheetDetail {
   approved_by: string | null;
   notes: string | null;
   employee: { id: string; first_name: string; last_name: string; email: string; title: string | null; hourly_rate: number | null };
-  line_items: { id: string; work_date: string; job_card_id: string | null; hours: number; overtime_hours: number; description: string | null; job_card?: { job_number: string; project_name: string } | null }[];
+  line_items: { id: string; work_date: string; job_card_id: string | null; regular_hours: number; overtime_hours: number; description: string | null; job_card?: { job_number: string; project_name: string } | null }[];
 }
 
 const STATUS_BADGE: Record<string, { bg: string; text: string; label: string }> = {
@@ -37,6 +38,7 @@ export default function TimesheetDetailPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const { success, error: showError } = useToast();
   const supabase = createClient();
 
   const fetchTimesheet = useCallback(async () => {
@@ -52,11 +54,11 @@ export default function TimesheetDetailPage() {
       .single();
 
     if (data) {
-      // Fetch line items separately if they exist
+      // Fetch time entries
       const { data: lines } = await supabase
-        .from("timesheet_lines")
+        .from("time_entries")
         .select(`
-          id, work_date, job_card_id, hours, overtime_hours, description,
+          id, work_date, job_card_id, regular_hours, overtime_hours, description,
           job_card:job_cards!job_card_id (job_number, project_name)
         `)
         .eq("timesheet_id", id)
@@ -77,14 +79,17 @@ export default function TimesheetDetailPage() {
     setSaving(true);
     const updates: Record<string, unknown> = { status: newStatus };
     if (newStatus === "approved") updates.approved_at = new Date().toISOString();
-    await supabase.from("timesheets").update(updates).eq("id", ts.id);
+    const { error } = await supabase.from("timesheets").update(updates).eq("id", ts.id);
+    if (error) { showError(error.message); setSaving(false); return; }
     setTs({ ...ts, status: newStatus, ...(newStatus === "approved" ? { approved_at: new Date().toISOString() } : {}) });
     setSaving(false);
+    success(`Timesheet ${newStatus}`);
   };
 
   const handleDelete = async () => {
     if (!ts) return;
     await supabase.from("timesheets").delete().eq("id", ts.id);
+    success("Timesheet deleted");
     router.push("/dashboard/timesheets");
   };
 
@@ -204,7 +209,7 @@ export default function TimesheetDetailPage() {
                     <td className="px-4 py-2 text-ivs-text">{new Date(line.work_date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}</td>
                     <td className="px-4 py-2 font-mono text-xs text-ivs-accent">{line.job_card?.job_number || "—"}</td>
                     <td className="px-4 py-2 text-ivs-text-muted">{line.description || "—"}</td>
-                    <td className="px-4 py-2 text-right text-ivs-text">{line.hours}h</td>
+                    <td className="px-4 py-2 text-right text-ivs-text">{line.regular_hours}h</td>
                     <td className="px-4 py-2 text-right text-ivs-warning">{line.overtime_hours ? `${line.overtime_hours}h` : "—"}</td>
                   </tr>
                 ))}

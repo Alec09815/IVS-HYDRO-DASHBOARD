@@ -7,7 +7,7 @@ import { ImportModal } from "./components/import-modal";
 import { ConvertToJobModal } from "./components/convert-to-job-modal";
 import { createClient } from "@/lib/supabase/client";
 import { BID_KANBAN_COLUMNS, type Bid, type KanbanColumnId } from "@/lib/types";
-import { Upload, Plus, RefreshCw } from "lucide-react";
+import { Upload, Plus, RefreshCw, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 const COLUMN_ORDER: KanbanColumnId[] = ["draft", "submitted", "won", "lost", "cancelled"];
@@ -23,6 +23,7 @@ export default function BidsPage() {
   const [loading, setLoading] = useState(true);
   const [importOpen, setImportOpen] = useState(false);
   const [convertBid, setConvertBid] = useState<Bid | null>(null);
+  const [search, setSearch] = useState("");
   const supabase = createClient();
   const router = useRouter();
 
@@ -123,6 +124,14 @@ export default function BidsPage() {
     }
   };
 
+  const filterBids = (list: Bid[]) => {
+    if (!search) return list;
+    const q = search.toLowerCase();
+    return list.filter((b) =>
+      `${b.bid_number} ${b.project_name} ${b.client_name} ${b.location || ""}`.toLowerCase().includes(q)
+    );
+  };
+
   const totalPipeline = Object.values(bids)
     .flat()
     .reduce((sum, b) => sum + (b.estimated_value || 0), 0);
@@ -139,6 +148,16 @@ export default function BidsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 bg-ivs-bg-card border border-ivs-border rounded-lg px-3 py-2 w-56">
+            <Search size={16} className="text-ivs-text-muted flex-shrink-0" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search bids..."
+              className="bg-transparent text-sm text-ivs-text placeholder-ivs-text-muted outline-none w-full"
+            />
+          </div>
           <button
             onClick={fetchBids}
             className="p-2 text-ivs-text-muted hover:text-ivs-text hover:bg-ivs-bg-card rounded-lg transition-colors"
@@ -185,7 +204,7 @@ export default function BidsPage() {
               <KanbanColumn
                 key={colId}
                 columnId={colId}
-                bids={bids[colId]}
+                bids={filterBids(bids[colId])}
                 onConvertToJob={(bid) => setConvertBid(bid)}
               />
             ))}

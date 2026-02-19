@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/contexts/toast-context";
 import type { Bid, BidStatus, Employee } from "@/lib/types";
 import Link from "next/link";
 import {
@@ -28,6 +29,7 @@ export default function BidDetailPage() {
   const [editing, setEditing] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [form, setForm] = useState<Partial<Bid>>({});
+  const { success, error: showError } = useToast();
   const supabase = createClient();
 
   const fetchBid = useCallback(async () => {
@@ -69,10 +71,12 @@ export default function BidDetailPage() {
       estimator_id: form.estimator_id || null,
       notes: form.notes || null,
     };
-    await supabase.from("bids").update(updates).eq("id", bid.id);
+    const { error } = await supabase.from("bids").update(updates).eq("id", bid.id);
+    if (error) { showError(error.message); setSaving(false); return; }
     setBid({ ...bid, ...updates } as Bid);
     setEditing(false);
     setSaving(false);
+    success("Bid updated");
   };
 
   const handleStatusChange = async (status: BidStatus) => {
@@ -94,6 +98,7 @@ export default function BidDetailPage() {
   const handleDelete = async () => {
     if (!bid) return;
     await supabase.from("bids").delete().eq("id", bid.id);
+    success("Bid deleted");
     router.push("/dashboard/bids");
   };
 
